@@ -67,3 +67,41 @@ body {
 .btn-ghost:hover {
     background-color: var(--color-bg-hover);
 }
+
+/* Responsive Breakpoints */
+@media (max-width: 768px) {
+    .hidden-mobile {
+        display: none !important;
+    }
+
+    .visible-mobile {
+        display: block !important;
+    }
+
+    .card {
+        border-radius: var(--radius-md);
+    }
+
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .main-content {
+        padding: 1rem !important;
+    }
+
+    .w-full-mobile {
+        width: 100% !important;
+    }
+}
+
+@media (min-width: 769px) {
+    .visible-mobile {
+        display: none !important;
+    }
+
+    .main-content {
+        padding: 2rem !important;
+    }
+}

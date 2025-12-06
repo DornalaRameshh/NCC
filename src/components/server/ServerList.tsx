@@ -39,7 +39,7 @@ export const ServerList: React.FC<ServerListProps> = ({ servers, onAddClick, onE
             {/* Toolbar */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                    <div style={{ position: 'relative', width: '300px' }}>
+                    <div className="w-full-mobile" style={{ position: 'relative', width: '300px' }}>
                         <Search size={18} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
                         <input
                             type="text"
