@@ -1,19 +1,67 @@
-
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { mockServers } from '../data/mockServers';
+import { ServerService } from '../services/serverService';
 import { ServerStatusBadge } from '../components/server/ServerStatusBadge';
 import { ArrowLeft, Cpu, HardDrive, Globe, Shield, User, Calendar, Tag } from 'lucide-react';
+import type { Server } from '../types/server';
 
 export const ServerDetailsPage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const server = mockServers.find(s => s.id === id);
+    const [server, setServer] = useState<Server | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    if (!server) {
+    useEffect(() => {
+        if (id) {
+            loadServer(id);
+        }
+    }, [id]);
+
+    const loadServer = async (serverId: string) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await ServerService.getServer(serverId);
+            setServer(data);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to load server');
+            console.error('Error loading server:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
         return (
             <div style={{ textAlign: 'center', padding: '3rem' }}>
-                <h2>Server not found</h2>
-                <button onClick={() => navigate('/servers')} className="btn btn-primary">
+                <div style={{
+                    display: 'inline-block',
+                    width: '40px',
+                    height: '40px',
+                    border: '4px solid var(--border-color)',
+                    borderTopColor: 'var(--color-primary)',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                }} />
+                <p style={{ marginTop: '1rem', color: 'var(--color-text-muted)' }}>Loading server details...</p>
+                <style>{`
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                `}</style>
+            </div>
+        );
+    }
+
+    if (error || !server) {
+        return (
+            <div style={{ textAlign: 'center', padding: '3rem' }}>
+                <h2 style={{ color: 'var(--color-danger)' }}>
+                    {error || 'Server not found'}
+                </h2>
+                <button onClick={() => navigate('/servers')} className="btn btn-primary" style={{ marginTop: '1rem' }}>
+                    <ArrowLeft size={18} />
                     Back to Servers
                 </button>
             </div>
@@ -80,9 +128,17 @@ export const ServerDetailsPage = () => {
                     </div>
 
                     <div className="card" style={{ padding: '1.5rem' }}>
-                        <h3 style={{ marginTop: 0, marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>Active Services (Mock)</h3>
-                        <div style={{ color: 'var(--color-text-muted)', fontStyle: 'italic' }}>
-                            No live services detected or integrated yet.
+                        <h3 style={{ marginTop: 0, marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>Category & Environment</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <span style={{
+                                fontSize: '0.875rem',
+                                backgroundColor: 'var(--color-bg-secondary)',
+                                padding: '0.5rem 1rem',
+                                borderRadius: 'var(--radius-md)',
+                                textTransform: 'capitalize'
+                            }}>
+                                {server.category}
+                            </span>
                         </div>
                     </div>
 
