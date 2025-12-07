@@ -5,7 +5,7 @@ FastAPI backend for server, domain, and infrastructure management
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import servers, domains
+from app.routers import servers, domains, emails, repositories, storage
 
 # Initialize FastAPI application
 app = FastAPI(
@@ -28,6 +28,9 @@ app.add_middleware(
 # Include routers
 app.include_router(servers.router, prefix=settings.API_V1_PREFIX)
 app.include_router(domains.router, prefix=settings.API_V1_PREFIX)
+app.include_router(emails.router, prefix=settings.API_V1_PREFIX)
+app.include_router(repositories.router, prefix=settings.API_V1_PREFIX)
+app.include_router(storage.router, prefix=settings.API_V1_PREFIX)
 
 @app.get("/")
 async def root():

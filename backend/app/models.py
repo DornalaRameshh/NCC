@@ -170,3 +170,125 @@ class DNSRecordUpdate(BaseModel):
     name: Optional[str] = None
     value: Optional[str] = None
     ttl: Optional[int] = None
+
+# ===== Email Solution Models =====
+
+class EmailStatus(str, Enum):
+    """Email account status"""
+    active = 'active'
+    suspended = 'suspended'
+    pending = 'pending'
+
+class EmailAccount(BaseModel):
+    """Email account model"""
+    id: str
+    email: str
+    displayName: str
+    provider: str  # Google Workspace, Zoho, Microsoft 365
+    status: EmailStatus
+    department: str
+    quotaUsed: int  # in MB
+    quotaLimit: int  # in MB
+    createdDate: str
+    lastLogin: Optional[str] = None
+
+class EmailCreate(BaseModel):
+    """Model for creating email account"""
+    email: str
+    displayName: str
+    provider: str
+    status: EmailStatus
+    department: str
+    quotaLimit: int
+    createdDate: str
+
+class EmailUpdate(BaseModel):
+    """Model for updating email account"""
+    displayName: Optional[str] = None
+    status: Optional[EmailStatus] = None
+    department: Optional[str] = None
+    quotaLimit: Optional[int] = None
+
+# ===== Version Control (Repository) Models =====
+
+class RepoVisibility(str, Enum):
+    """Repository visibility"""
+    public = 'public'
+    private = 'private'
+    internal = 'internal'
+
+class CIStatus(str, Enum):
+    """CI/CD pipeline status"""
+    passing = 'passing'
+    failing = 'failing'
+    pending = 'pending'
+    none = 'none'
+
+class Repository(BaseModel):
+    """Code repository model"""
+    id: str
+    name: str
+    url: str
+    provider: str  # GitHub, GitLab, Bitbucket
+    language: str
+    visibility: RepoVisibility
+    ownerTeam: str
+    ciStatus: CIStatus
+    lastCommit: Optional[str] = None
+    branches: int = 1
+    openIssues: int = 0
+
+class RepositoryCreate(BaseModel):
+    """Model for creating repository"""
+    name: str
+    url: str
+    provider: str
+    language: str
+    visibility: RepoVisibility
+    ownerTeam: str
+    ciStatus: CIStatus = CIStatus.none
+
+class RepositoryUpdate(BaseModel):
+    """Model for updating repository"""
+    name: Optional[str] = None
+    url: Optional[str] = None
+    language: Optional[str] = None
+    visibility: Optional[RepoVisibility] = None
+    ownerTeam: Optional[str] = None
+    ciStatus: Optional[CIStatus] = None
+
+# ===== Storage Management Models =====
+
+class StorageType(str, Enum):
+    """Storage type"""
+    object = 'object'  # S3, GCS
+    block = 'block'    # EBS, Persistent Disk
+    file = 'file'      # EFS, Filestore
+
+class StorageBucket(BaseModel):
+    """Storage bucket/volume model"""
+    id: str
+    name: str
+    provider: str  # AWS S3, GCP, Azure Blob
+    type: StorageType
+    region: str
+    usageBytes: int
+    capacityBytes: int
+    createdDate: str
+    isPublic: bool = False
+
+class StorageCreate(BaseModel):
+    """Model for creating storage"""
+    name: str
+    provider: str
+    type: StorageType
+    region: str
+    capacityBytes: int
+    isPublic: bool = False
+
+class StorageUpdate(BaseModel):
+    """Model for updating storage"""
+    name: Optional[str] = None
+    capacityBytes: Optional[int] = None
+    isPublic: Optional[bool] = None
+
