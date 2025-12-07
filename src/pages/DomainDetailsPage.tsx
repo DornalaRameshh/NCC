@@ -1,22 +1,70 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { mockDomains } from '../data/mockDomains';
+import { DomainService } from '../services/domainService';
 import { DomainStatusBadge } from '../features/domains/DomainStatusBadge';
 import { ExpiryIndicator } from '../features/domains/ExpiryIndicator';
 import { DNSRecordsTable } from '../features/domains/DNSRecordsTable';
 import { ArrowLeft, Lock } from 'lucide-react';
+import type { Domain } from '../types/domain';
 
 export const DomainDetailsPage = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const domain = mockDomains.find(d => d.id === id);
+    const [domain, setDomain] = useState<Domain | null>(null);
     const [activeTab, setActiveTab] = useState<'overview' | 'dns'>('overview');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    if (!domain) {
+    useEffect(() => {
+        if (id) {
+            loadDomain(id);
+        }
+    }, [id]);
+
+    const loadDomain = async (domainId: string) => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await DomainService.getDomain(domainId);
+            setDomain(data);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to load domain');
+            console.error('Error loading domain:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
         return (
             <div style={{ textAlign: 'center', padding: '3rem' }}>
-                <h2>Domain not found</h2>
-                <button onClick={() => navigate('/domains')} className="btn btn-primary">
+                <div style={{
+                    display: 'inline-block',
+                    width: '40px',
+                    height: '40px',
+                    border: '4px solid var(--border-color)',
+                    borderTopColor: 'var(--color-primary)',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                }} />
+                <p style={{ marginTop: '1rem', color: 'var(--color-text-muted)' }}>Loading domain details...</p>
+                <style>{`
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                `}</style>
+            </div>
+        );
+    }
+
+    if (error || !domain) {
+        return (
+            <div style={{ textAlign: 'center', padding: '3rem' }}>
+                <h2 style={{ color: 'var(--color-danger)' }}>
+                    {error || 'Domain not found'}
+                </h2>
+                <button onClick={() => navigate('/domains')} className="btn btn-primary" style={{ marginTop: '1rem' }}>
+                    <ArrowLeft size={18} />
                     Back to Domains
                 </button>
             </div>
@@ -154,7 +202,7 @@ export const DomainDetailsPage = () => {
             )}
 
             {activeTab === 'dns' && (
-                <DNSRecordsTable records={domain.dnsRecords} />
+                <DNSRecordsTable records={domain.dnsRecords || []} />
             )}
         </div>
     );
