@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { EmailService } from '../services/emailService';
+import { EmailModal } from '../components/EmailModal';
 import { Mail, Plus, Search, Filter, Edit2, Trash2 } from 'lucide-react';
 import type { EmailAccount, EmailStatus } from '../types/email';
 
@@ -10,6 +11,10 @@ export const EmailsPage = () => {
     const [searchText, setSearchText] = useState('');
     const [statusFilter, setStatusFilter] = useState<EmailStatus | 'all'>('all');
     const [showFilters, setShowFilters] = useState(false);
+
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingEmail, setEditingEmail] = useState<EmailAccount | null>(null);
 
     useEffect(() => {
         loadEmails();
@@ -28,13 +33,41 @@ export const EmailsPage = () => {
         }
     };
 
+    const handleSave = async (emailData: Omit<EmailAccount, 'id' | 'quotaUsed'>) => {
+        try {
+            setError(null);
+            if (editingEmail) {
+                const updated = await EmailService.updateEmail(editingEmail.id, emailData);
+                setEmails(emails.map(e => e.id === updated.id ? updated : e));
+            } else {
+                const created = await EmailService.createEmail(emailData);
+                setEmails([...emails, created]);
+            }
+            setIsModalOpen(false);
+            setEditingEmail(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to save email');
+        }
+    };
+
     const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this email account?')) return;
         try {
             await EmailService.deleteEmail(id);
             setEmails(emails.filter(e => e.id !== id));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to delete email');
         }
+    };
+
+    const openAddModal = () => {
+        setEditingEmail(null);
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (email: EmailAccount) => {
+        setEditingEmail(email);
+        setIsModalOpen(true);
     };
 
     const filteredEmails = emails.filter(e => {
@@ -68,7 +101,7 @@ export const EmailsPage = () => {
                         Manage email accounts, quotas, and access permissions.
                     </p>
                 </div>
-                <button className="btn btn-primary">
+                <button className="btn btn-primary" onClick={openAddModal}>
                     <Plus size={18} /> Add Email
                 </button>
             </div>
@@ -151,7 +184,7 @@ export const EmailsPage = () => {
                                             </span>
                                         </td>
                                         <td style={{ padding: '0.75rem', textAlign: 'right' }}>
-                                            <button className="btn btn-ghost" style={{ padding: '0.5rem' }}><Edit2 size={16} /></button>
+                                            <button className="btn btn-ghost" style={{ padding: '0.5rem' }} onClick={() => openEditModal(email)}><Edit2 size={16} /></button>
                                             <button className="btn btn-ghost" style={{ padding: '0.5rem', color: 'var(--color-danger)' }} onClick={() => handleDelete(email.id)}><Trash2 size={16} /></button>
                                         </td>
                                     </tr>
@@ -162,7 +195,18 @@ export const EmailsPage = () => {
                 </div>
             )}
 
+            <EmailModal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingEmail(null);
+                }}
+                onSave={handleSave}
+                initialData={editingEmail}
+            />
+
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
     );
 };
+

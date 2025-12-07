@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { StorageService } from '../services/storageService';
+import { StorageModal } from '../components/StorageModal';
 import { HardDrive, Plus, Search, Filter, Edit2, Trash2, Cloud } from 'lucide-react';
 import type { StorageBucket, StorageType } from '../types/storage';
 
@@ -10,6 +11,10 @@ export const StoragePage = () => {
     const [searchText, setSearchText] = useState('');
     const [typeFilter, setTypeFilter] = useState<StorageType | 'all'>('all');
     const [showFilters, setShowFilters] = useState(false);
+
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingStorage, setEditingStorage] = useState<StorageBucket | null>(null);
 
     useEffect(() => {
         loadStorage();
@@ -28,13 +33,41 @@ export const StoragePage = () => {
         }
     };
 
+    const handleSave = async (storageData: Omit<StorageBucket, 'id' | 'usageBytes' | 'createdDate'>) => {
+        try {
+            setError(null);
+            if (editingStorage) {
+                const updated = await StorageService.updateStorage(editingStorage.id, storageData);
+                setStorage(storage.map(s => s.id === updated.id ? updated : s));
+            } else {
+                const created = await StorageService.createStorage(storageData);
+                setStorage([...storage, created]);
+            }
+            setIsModalOpen(false);
+            setEditingStorage(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to save storage');
+        }
+    };
+
     const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this storage bucket?')) return;
         try {
             await StorageService.deleteStorage(id);
             setStorage(storage.filter(s => s.id !== id));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to delete storage');
         }
+    };
+
+    const openAddModal = () => {
+        setEditingStorage(null);
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (item: StorageBucket) => {
+        setEditingStorage(item);
+        setIsModalOpen(true);
     };
 
     const filteredStorage = storage.filter(s => {
@@ -74,7 +107,7 @@ export const StoragePage = () => {
                         Manage cloud storage buckets and volumes.
                     </p>
                 </div>
-                <button className="btn btn-primary">
+                <button className="btn btn-primary" onClick={openAddModal}>
                     <Plus size={18} /> Add Storage
                 </button>
             </div>
@@ -148,7 +181,7 @@ export const StoragePage = () => {
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>
                                     <span>📍 {item.region}</span>
                                     <div style={{ display: 'flex', gap: '0.25rem' }}>
-                                        <button className="btn btn-ghost" style={{ padding: '0.5rem' }}><Edit2 size={16} /></button>
+                                        <button className="btn btn-ghost" style={{ padding: '0.5rem' }} onClick={() => openEditModal(item)}><Edit2 size={16} /></button>
                                         <button className="btn btn-ghost" style={{ padding: '0.5rem', color: 'var(--color-danger)' }} onClick={() => handleDelete(item.id)}><Trash2 size={16} /></button>
                                     </div>
                                 </div>
@@ -157,6 +190,16 @@ export const StoragePage = () => {
                     })}
                 </div>
             )}
+
+            <StorageModal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingStorage(null);
+                }}
+                onSave={handleSave}
+                initialData={editingStorage}
+            />
 
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>

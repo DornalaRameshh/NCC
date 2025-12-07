@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { RepositoryService } from '../services/repositoryService';
+import { RepositoryModal } from '../components/RepositoryModal';
 import { GitBranch, Plus, Search, Filter, Edit2, Trash2, ExternalLink, Circle } from 'lucide-react';
 import type { Repository, CIStatus, RepoVisibility } from '../types/repository';
 
@@ -10,6 +11,10 @@ export const RepositoriesPage = () => {
     const [searchText, setSearchText] = useState('');
     const [providerFilter, setProviderFilter] = useState('all');
     const [showFilters, setShowFilters] = useState(false);
+
+    // Modal state
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingRepo, setEditingRepo] = useState<Repository | null>(null);
 
     useEffect(() => {
         loadRepos();
@@ -28,13 +33,41 @@ export const RepositoriesPage = () => {
         }
     };
 
+    const handleSave = async (repoData: Omit<Repository, 'id' | 'branches' | 'openIssues'>) => {
+        try {
+            setError(null);
+            if (editingRepo) {
+                const updated = await RepositoryService.updateRepository(editingRepo.id, repoData);
+                setRepos(repos.map(r => r.id === updated.id ? updated : r));
+            } else {
+                const created = await RepositoryService.createRepository(repoData);
+                setRepos([...repos, created]);
+            }
+            setIsModalOpen(false);
+            setEditingRepo(null);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to save repository');
+        }
+    };
+
     const handleDelete = async (id: string) => {
+        if (!confirm('Are you sure you want to delete this repository?')) return;
         try {
             await RepositoryService.deleteRepository(id);
             setRepos(repos.filter(r => r.id !== id));
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to delete repository');
         }
+    };
+
+    const openAddModal = () => {
+        setEditingRepo(null);
+        setIsModalOpen(true);
+    };
+
+    const openEditModal = (repo: Repository) => {
+        setEditingRepo(repo);
+        setIsModalOpen(true);
     };
 
     const filteredRepos = repos.filter(r => {
@@ -70,7 +103,7 @@ export const RepositoriesPage = () => {
                         Manage code repositories and CI/CD pipelines.
                     </p>
                 </div>
-                <button className="btn btn-primary">
+                <button className="btn btn-primary" onClick={openAddModal}>
                     <Plus size={18} /> Add Repository
                 </button>
             </div>
@@ -138,7 +171,7 @@ export const RepositoriesPage = () => {
                                 </div>
                                 <div style={{ display: 'flex', gap: '0.25rem' }}>
                                     <a href={repo.url} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ padding: '0.5rem' }}><ExternalLink size={16} /></a>
-                                    <button className="btn btn-ghost" style={{ padding: '0.5rem' }}><Edit2 size={16} /></button>
+                                    <button className="btn btn-ghost" style={{ padding: '0.5rem' }} onClick={() => openEditModal(repo)}><Edit2 size={16} /></button>
                                     <button className="btn btn-ghost" style={{ padding: '0.5rem', color: 'var(--color-danger)' }} onClick={() => handleDelete(repo.id)}><Trash2 size={16} /></button>
                                 </div>
                             </div>
@@ -146,6 +179,16 @@ export const RepositoriesPage = () => {
                     ))}
                 </div>
             )}
+
+            <RepositoryModal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingRepo(null);
+                }}
+                onSave={handleSave}
+                initialData={editingRepo}
+            />
 
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
